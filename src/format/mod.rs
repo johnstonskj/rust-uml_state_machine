@@ -1,9 +1,34 @@
 /*!
 Provides support for parsing, and emitting, external representations of a `StateMachine`.
 
-More detailed description, with
+Each sub-module provides for a different representation type but may not implement both the
+`Parse` and `Stringify` traits.
 
 # Example
+
+```rust
+use uml_state_machine::types::*;
+use uml_state_machine::format::plant_uml::WritePlantUml;
+use uml_state_machine::format::Stringify;
+
+#[derive(PartialEq)]
+enum Event {
+    This,
+    That,
+}
+
+let simple: StateMachine<Event> = StateMachine::default();
+let region: &Region<Event> = simple.default_region().unwrap();
+let initial_id = region.new_initial_state();
+let state_id = region.new_simple_state();
+let final_id = region.new_final_state();
+
+region.new_transition(initial_id, state_id.clone());
+region.new_transition(state_id, final_id);
+
+let writer = WritePlantUml::default();
+let string = writer.stringify(&simple);
+```
 
 */
 
@@ -13,12 +38,18 @@ use crate::definition::types::StateMachine;
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
+///
+/// Parse an external representation and return a new `StateMachine` model.
+///
 pub trait Parse<E: PartialEq> {
     type Error;
 
     fn parse(&self, string: &str) -> Result<StateMachine<E>, Self::Error>;
 }
 
+///
+/// Create a textual representation of the state machine.
+///
 pub trait Stringify<E: PartialEq> {
     type Error;
 

@@ -779,7 +779,6 @@ mod tests {
     use crate::format::plant_uml::WritePlantUml;
     use crate::format::Stringify;
 
-    #[allow(dead_code)]
     #[derive(PartialEq)]
     enum Event {
         This,

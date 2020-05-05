@@ -8,7 +8,7 @@ image is from §14.2.2 **Abstract Syntax** and provides a very useful overview o
 of the model. As such, wherever possible the text of the documentation will reference the
 specification, especially copies of the constraints and semantic rules.
 
-![Abstract Syntax](abstract-syntax.png)
+![Abstract Syntax](https://raw.githubusercontent.com/johnstonskj/rust-uml_state_machine/master/doc/abstract-syntax.png)
 
 The crate contains the descriptive model elements at the root level, with modules for error handling,
 execution of instances and reading and writing formatted representations.

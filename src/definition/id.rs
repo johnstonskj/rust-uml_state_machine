@@ -2,10 +2,14 @@
 A common identifier type, it provides for string-based random values but also allows for prefixes
 and ID paths.
 
-More detailed description, with
-
 # Example
 
+```rust
+use uml_state_machine::id::ID;
+
+let first_id = ID::random_with_prefix("thing").unwrap();
+let _next_id = first_id.append_random();
+```
 */
 
 use std::fmt::Display;
@@ -18,6 +22,10 @@ use std::str::FromStr;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ID(String);
 
+///
+/// Provides a common error implementation, error kind enumeration, and constrained result type for
+/// ID creation/parsing.
+///
 pub mod error {
     error_chain! {
         errors {
@@ -135,3 +143,18 @@ impl ID {
 // ------------------------------------------------------------------------------------------------
 // Modules
 // ------------------------------------------------------------------------------------------------
+
+// ------------------------------------------------------------------------------------------------
+// Unit Tests
+// ------------------------------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_something() {
+        let first_id = ID::random_with_prefix("thing").unwrap();
+        let _next_id = first_id.append_random();
+    }
+}
