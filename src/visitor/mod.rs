@@ -8,29 +8,30 @@ More detailed description, with
 
 */
 
+use std::borrow::Borrow;
+use std::rc::Rc;
+use std::slice::Iter;
+
 use crate::definition::id::ID;
 use crate::definition::types::{
     Behavior, Constraint, HasRegions, Identified, Labeled, PseudoState, PseudoStateKind, Region,
     State, StateMachine, TransitionKind, Trigger, Validate, Vertex,
 };
 use crate::error::Error;
-use std::borrow::Borrow;
-use std::rc::Rc;
-use std::slice::Iter;
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
-pub struct Resolver<'a, E: PartialEq> {
-    inner: &'a StateMachine<E>,
+pub struct Resolver<'a> {
+    inner: &'a StateMachine,
 }
 
-pub trait StateMachineVisitor<E: 'static + PartialEq> {
+pub trait StateMachineVisitor {
     #[allow(unused_variables)]
     fn enter_state_machine(
         &self,
-        resolver: &Resolver<'_, E>,
+        resolver: &Resolver<'_>,
         id: &ID,
         label: &Option<String>,
         machine_states: Iter<'_, ID>,
@@ -41,7 +42,7 @@ pub trait StateMachineVisitor<E: 'static + PartialEq> {
     #[allow(unused_variables)]
     fn exit_state_machine(
         &self,
-        resolver: &Resolver<'_, E>,
+        resolver: &Resolver<'_>,
         id: &ID,
         label: &Option<String>,
         machine_states: Iter<'_, ID>,
@@ -53,18 +54,18 @@ pub trait StateMachineVisitor<E: 'static + PartialEq> {
     #[allow(clippy::too_many_arguments)]
     fn enter_state(
         &self,
-        resolver: &Resolver<'_, E>,
+        resolver: &Resolver<'_>,
         id: &ID,
         label: &Option<String>,
         region_count: usize,
         sub_machine: &Option<ID>,
         connections: Iter<'_, ID>,
         connection_points: Iter<'_, ID>,
-        deferrable_triggers: Iter<'_, Trigger<E>>,
-        invariant: &Option<Box<dyn Constraint<E>>>,
-        entry: &Option<Box<dyn Behavior<E>>>,
-        do_activity: &Option<Box<dyn Behavior<E>>>,
-        exit: &Option<Box<dyn Behavior<E>>>,
+        deferrable_triggers: Iter<'_, Trigger>,
+        invariant: &Option<Box<dyn Constraint>>,
+        entry: &Option<Box<dyn Behavior>>,
+        do_activity: &Option<Box<dyn Behavior>>,
+        exit: &Option<Box<dyn Behavior>>,
         is_final: bool,
     ) {
     }
@@ -73,32 +74,32 @@ pub trait StateMachineVisitor<E: 'static + PartialEq> {
     #[allow(clippy::too_many_arguments)]
     fn exit_state(
         &self,
-        resolver: &Resolver<'_, E>,
+        resolver: &Resolver<'_>,
         id: &ID,
         label: &Option<String>,
         region_count: usize,
         sub_machine: &Option<ID>,
         connections: Iter<'_, ID>,
         connection_points: Iter<'_, ID>,
-        deferrable_triggers: Iter<'_, Trigger<E>>,
-        invariant: &Option<Box<dyn Constraint<E>>>,
-        entry: &Option<Box<dyn Behavior<E>>>,
-        do_activity: &Option<Box<dyn Behavior<E>>>,
-        exit: &Option<Box<dyn Behavior<E>>>,
+        deferrable_triggers: Iter<'_, Trigger>,
+        invariant: &Option<Box<dyn Constraint>>,
+        entry: &Option<Box<dyn Behavior>>,
+        do_activity: &Option<Box<dyn Behavior>>,
+        exit: &Option<Box<dyn Behavior>>,
         is_final: bool,
     ) {
     }
 
     #[allow(unused_variables)]
-    fn enter_region(&self, resolver: &Resolver<'_, E>, id: &ID, label: &Option<String>) {}
+    fn enter_region(&self, resolver: &Resolver<'_>, id: &ID, label: &Option<String>) {}
 
     #[allow(unused_variables)]
-    fn exit_region(&self, resolver: &Resolver<'_, E>, id: &ID, label: &Option<String>) {}
+    fn exit_region(&self, resolver: &Resolver<'_>, id: &ID, label: &Option<String>) {}
 
     #[allow(unused_variables)]
     fn connection_point_reference(
         &self,
-        resolver: &Resolver<'_, E>,
+        resolver: &Resolver<'_>,
         id: &ID,
         label: &Option<String>,
         entry: Iter<'_, ID>,
@@ -110,7 +111,7 @@ pub trait StateMachineVisitor<E: 'static + PartialEq> {
     #[allow(unused_variables)]
     fn pseudo_state(
         &self,
-        resolver: &Resolver<'_, E>,
+        resolver: &Resolver<'_>,
         id: &ID,
         label: &Option<String>,
         kind: &PseudoStateKind,
@@ -121,14 +122,14 @@ pub trait StateMachineVisitor<E: 'static + PartialEq> {
     #[allow(clippy::too_many_arguments)]
     fn transition(
         &self,
-        resolver: &Resolver<'_, E>,
+        resolver: &Resolver<'_>,
         label: &Option<String>,
         kind: TransitionKind,
         source: ID,
         target: ID,
-        triggers: Iter<'_, Trigger<E>>,
-        guard: &Option<Box<dyn Constraint<E>>>,
-        effect: &Option<Box<dyn Behavior<E>>>,
+        triggers: Iter<'_, Trigger>,
+        guard: &Option<Box<dyn Constraint>>,
+        effect: &Option<Box<dyn Behavior>>,
     ) {
     }
 }
@@ -137,9 +138,9 @@ pub trait StateMachineVisitor<E: 'static + PartialEq> {
 // Public Functions
 // ------------------------------------------------------------------------------------------------
 
-pub fn visit_state_machine<E: 'static + PartialEq>(
-    machine: &StateMachine<E>,
-    visitor: &dyn StateMachineVisitor<E>,
+pub fn visit_state_machine(
+    machine: &StateMachine,
+    visitor: &dyn StateMachineVisitor,
 ) -> Result<(), Error> {
     machine.validate()?;
     machine.index_references();
@@ -168,12 +169,12 @@ pub fn visit_state_machine<E: 'static + PartialEq>(
 // Implementations
 // ------------------------------------------------------------------------------------------------
 
-impl<'a, E: 'static + PartialEq> Resolver<'a, E> {
-    pub fn find_machine(&self, machine: ID) -> Option<Rc<StateMachine<E>>> {
+impl<'a> Resolver<'a> {
+    pub fn find_machine(&self, machine: ID) -> Option<Rc<StateMachine>> {
         self.inner.find_machine(machine)
     }
 
-    pub fn find_vertex(&self, container: ID, vertex: ID) -> Option<Rc<Vertex<E>>> {
+    pub fn find_vertex(&self, container: ID, vertex: ID) -> Option<Rc<Vertex>> {
         self.inner.find_vertex(container, vertex)
     }
 }
@@ -185,10 +186,10 @@ impl<'a, E: 'static + PartialEq> Resolver<'a, E> {
 // Private Functions
 // ------------------------------------------------------------------------------------------------
 
-fn visit_state<E: 'static + PartialEq>(
-    state: &State<E>,
-    resolver: &Resolver<'_, E>,
-    visitor: &dyn StateMachineVisitor<E>,
+fn visit_state(
+    state: &State,
+    resolver: &Resolver<'_>,
+    visitor: &dyn StateMachineVisitor,
 ) -> Result<(), Error> {
     visitor.enter_state(
         resolver,
@@ -226,10 +227,10 @@ fn visit_state<E: 'static + PartialEq>(
     Ok(())
 }
 
-fn visit_region<E: 'static + PartialEq>(
-    region: &Region<E>,
-    resolver: &Resolver<'_, E>,
-    visitor: &dyn StateMachineVisitor<E>,
+fn visit_region(
+    region: &Region,
+    resolver: &Resolver<'_>,
+    visitor: &dyn StateMachineVisitor,
 ) -> Result<(), Error> {
     visitor.enter_region(resolver, region.id(), region.label());
     for vertex in region.vertices() {

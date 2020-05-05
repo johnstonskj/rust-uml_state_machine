@@ -19,6 +19,10 @@ use std::str::FromStr;
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
+///
+/// The ID type, this is purposefully opaque, but can be represented as a `String` and parsed from a
+/// `String`.
+///
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ID(String);
 

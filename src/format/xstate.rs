@@ -1,9 +1,10 @@
 /*!
-One-line description.
-
-More detailed description, with
+Writes a state machine out in the [JavaScript state machines and StateMachines (XState)](https://xstate.js.org/)
+format. Does not yet support parsing XState.
 
 # Example
+
+TBD
 
 */
 

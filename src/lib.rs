@@ -29,27 +29,38 @@ TBD
 */
 
 #![warn(
-    // ---------- Stylistic
-    future_incompatible,
-    nonstandard_style,
-    rust_2018_idioms,
-    trivial_casts,
-    trivial_numeric_casts,
-    // ---------- Public
-    // missing_debug_implementations,
-    // missing_docs,
-    unreachable_pub,
-    // ---------- Unsafe
-    unsafe_code,
-    // ---------- Unused
-    unused_extern_crates,
-    unused_import_braces,
-    unused_qualifications,
-    unused_results,
+// ---------- Stylistic
+future_incompatible,
+nonstandard_style,
+rust_2018_idioms,
+trivial_casts,
+trivial_numeric_casts,
+// ---------- Public
+// missing_debug_implementations,
+// missing_docs,
+unreachable_pub,
+// ---------- Unsafe
+unsafe_code,
+// ---------- Unused
+unused_extern_crates,
+unused_import_braces,
+unused_qualifications,
+unused_results,
 )]
 
 #[macro_use]
 extern crate error_chain;
+
+// ------------------------------------------------------------------------------------------------
+// Public Values
+// ------------------------------------------------------------------------------------------------
+
+pub use definition::*;
+
+///
+/// The version of the UML specification from which this implementation is derived.
+///
+pub const UML_SPECIFICATION_VERSION: &str = "2.5.1";
 
 // ------------------------------------------------------------------------------------------------
 // Modules
@@ -58,8 +69,6 @@ extern crate error_chain;
 pub mod error;
 
 mod definition;
-pub use definition::*;
-
 pub mod format;
 
 pub mod visitor;

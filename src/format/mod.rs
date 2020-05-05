@@ -11,14 +11,8 @@ use uml_state_machine::types::*;
 use uml_state_machine::format::plant_uml::WritePlantUml;
 use uml_state_machine::format::Stringify;
 
-#[derive(PartialEq)]
-enum Event {
-    This,
-    That,
-}
-
-let simple: StateMachine<Event> = StateMachine::default();
-let region: &Region<Event> = simple.default_region().unwrap();
+let simple: StateMachine = StateMachine::default();
+let region: &Region = simple.default_region().unwrap();
 let initial_id = region.new_initial_state();
 let state_id = region.new_simple_state();
 let final_id = region.new_final_state();
@@ -41,19 +35,19 @@ use crate::definition::types::StateMachine;
 ///
 /// Parse an external representation and return a new `StateMachine` model.
 ///
-pub trait Parse<E: PartialEq> {
+pub trait Parse {
     type Error;
 
-    fn parse(&self, string: &str) -> Result<StateMachine<E>, Self::Error>;
+    fn parse(&self, string: &str) -> Result<StateMachine, Self::Error>;
 }
 
 ///
 /// Create a textual representation of the state machine.
 ///
-pub trait Stringify<E: PartialEq> {
+pub trait Stringify {
     type Error;
 
-    fn stringify(&self, machine: &StateMachine<E>) -> Result<String, Self::Error>;
+    fn stringify(&self, machine: &StateMachine) -> Result<String, Self::Error>;
 }
 
 // ------------------------------------------------------------------------------------------------

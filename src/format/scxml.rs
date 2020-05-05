@@ -1,9 +1,10 @@
 /*!
-One-line description.
-
-More detailed description, with
+Writes a state machine out in the [State Chart XML (SCXML): State Machine Notation for Control
+Abstraction](https://www.w3.org/TR/scxml/) format. Does not support parsing SCXML.
 
 # Example
+
+TBD
 
 */
 

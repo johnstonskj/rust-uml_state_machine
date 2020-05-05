@@ -1,9 +1,9 @@
 /*!
-One-line description.
-
-More detailed description, with
+Writes a state machine out in the UML XMI format. Does not yet support parsing XMI.
 
 # Example
+
+TBD
 
 */
 

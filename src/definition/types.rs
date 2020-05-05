@@ -7,30 +7,33 @@ More detailed description, with
 
 */
 
-use crate::definition::id::ID;
-use crate::error::Result;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::slice::Iter;
 
+use crate::definition::id::ID;
+use crate::error::Result;
+
 // ------------------------------------------------------------------------------------------------
 // Public Traits
 // ------------------------------------------------------------------------------------------------
 
-pub trait HasRegions<'a, E: PartialEq>: Identified {
+pub trait Event: Debug {}
+
+pub trait HasRegions: Identified {
     fn has_regions(&self) -> bool;
 
-    fn regions(&self) -> Iter<'_, Region<E>>;
+    fn regions(&self) -> Iter<'_, Region>;
 
-    fn region(&self, index: usize) -> Option<&Region<E>>;
+    fn region(&self, index: usize) -> Option<&Region>;
 
-    fn default_region(&self) -> Option<&Region<E>> {
+    fn default_region(&self) -> Option<&Region> {
         self.region(0)
     }
 
-    fn add_region(&mut self, region: Region<E>);
+    fn add_region(&mut self, region: Region);
 }
 
 pub trait Labeled {
@@ -61,17 +64,17 @@ pub trait Validate {
 
 /// The top-level state chart type itself.
 ///
-pub struct StateMachine<E: PartialEq> {
+pub struct StateMachine {
     pub(crate) id: ID,
     pub(crate) label: Option<String>,
     /// **UML**: `{subsets ownedMember} +region 1..*`
-    pub(crate) regions: Vec<Region<E>>,
+    pub(crate) regions: Vec<Region>,
     /// **UML**: `+submachineState * : State`
     pub(crate) sub_machine_states: Vec<ID>,
     /// **UML**: `{subsets ownedMember} +connectionPoint *`
     pub(crate) connection_points: Vec<PseudoState>,
-    pub(crate) ref_machines: RefCell<HashMap<ID, Rc<StateMachine<E>>>>,
-    pub(crate) ref_vertices: RefCell<HashMap<(ID, ID), Rc<Vertex<E>>>>,
+    pub(crate) ref_machines: RefCell<HashMap<ID, Rc<StateMachine>>>,
+    pub(crate) ref_vertices: RefCell<HashMap<(ID, ID), Rc<Vertex>>>,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -81,39 +84,39 @@ pub enum RegionContainerType {
     StateMachine,
 }
 
-pub enum Vertex<E: PartialEq> {
-    State(State<E>),
+pub enum Vertex {
+    State(State),
     PseudoState(PseudoState),
     ConnectionPointReference(ConnectionPointReference),
 }
 
-pub struct Region<E: PartialEq> {
+pub struct Region {
     pub(crate) id: ID,
     pub(crate) label: Option<String>,
     /// **UML**: `{subsets namespace} +stateMachine 0..1 : StateMachine`
     pub(crate) container: ID,
     pub(crate) container_type: RegionContainerType,
     /// **UML**: `{subsets ownedMember} +subvertex *`
-    pub(crate) vertices: Rc<RefCell<Vec<Rc<Vertex<E>>>>>,
+    pub(crate) vertices: Rc<RefCell<Vec<Rc<Vertex>>>>,
     /// **UML**: `{subsets ownedMember} +transition *`
-    pub(crate) transitions: Rc<RefCell<Vec<Rc<Transition<E>>>>>,
+    pub(crate) transitions: Rc<RefCell<Vec<Rc<Transition>>>>,
 }
 
 // ------------------------------------------------------------------------------------------------
 
-pub struct Trigger<E: PartialEq> {
-    pub(crate) event: Option<E>,
+pub struct Trigger {
+    pub(crate) event: Option<Box<dyn Event>>,
 }
 
 // ------------------------------------------------------------------------------------------------
 
-pub struct State<E: PartialEq> {
+pub struct State {
     pub(crate) id: ID,
     pub(crate) label: Option<String>,
     /// **UML**: `{subsets namespace} +container 0..1 : Region`
     pub(crate) container: ID,
     /// **UML**: `{subsets ownedMember} +region *`
-    pub(crate) regions: Vec<Region<E>>,
+    pub(crate) regions: Vec<Region>,
     /// **UML**: `+ submachine 0..1 : StateMachine`
     pub(crate) sub_machine: Option<ID>,
     /// **UML**: `{subsets ownedMember} +connection * : ConnectionPointReference`
@@ -121,15 +124,15 @@ pub struct State<E: PartialEq> {
     /// **UML**: `{subsets ownedMember} +connectionPoint * : PseudoState`
     pub(crate) connection_points: Vec<ID>,
     /// **UML**: `{subsets ownedElement} +deferrableTrigger *`
-    pub(crate) deferrable_triggers: Vec<Trigger<E>>,
+    pub(crate) deferrable_triggers: Vec<Trigger>,
     /// **UML**: `{subsets ownedRule} +stateInvariant 0..1`
-    pub(crate) invariant: Option<Box<dyn Constraint<E>>>,
+    pub(crate) invariant: Option<Box<dyn Constraint>>,
     /// **UML**: `{subsets ownedElement} +entry 0..1`
-    pub(crate) entry: Option<Box<dyn Behavior<E>>>,
+    pub(crate) entry: Option<Box<dyn Behavior>>,
     /// **UML**: `{subsets ownedElement} +doActivity 0..1`
-    pub(crate) do_activity: Option<Box<dyn Behavior<E>>>,
+    pub(crate) do_activity: Option<Box<dyn Behavior>>,
     /// **UML**: `{subsets ownedElement} +exit 0..1`
-    pub(crate) exit: Option<Box<dyn Behavior<E>>>,
+    pub(crate) exit: Option<Box<dyn Behavior>>,
     pub(crate) final_state: bool,
 }
 
@@ -180,7 +183,7 @@ pub enum TransitionKind {
     External,
 }
 
-pub struct Transition<E: PartialEq> {
+pub struct Transition {
     pub(crate) label: Option<String>,
     /// **UML**: `{subsets namespace} + container 1 : Region`
     pub(crate) container: ID,
@@ -191,19 +194,19 @@ pub struct Transition<E: PartialEq> {
     /// **UML**: `+target 1 : Vertex`
     pub(crate) target: ID,
     /// **UML**: `{subsets ownedElement} +trigger *`
-    pub(crate) triggers: Vec<Trigger<E>>,
+    pub(crate) triggers: Vec<Trigger>,
     /// **UML**: `{subsets ownedRule} +guard 0..1`
-    pub(crate) guard: Option<Box<dyn Constraint<E>>>,
+    pub(crate) guard: Option<Box<dyn Constraint>>,
     /// **UML**: `{subsets ownedElement} +effect 0..1`
-    pub(crate) effect: Option<Box<dyn Behavior<E>>>,
+    pub(crate) effect: Option<Box<dyn Behavior>>,
 }
 
 // ------------------------------------------------------------------------------------------------
 
-pub trait Behavior<E: PartialEq>: Labeled {
-    fn perform(&self, in_state: &ID, on_trigger: &Trigger<E>);
+pub trait Behavior: Labeled {
+    fn perform(&self, in_state: &ID, on_trigger: &Trigger);
 }
 
-pub trait Constraint<E: PartialEq>: Labeled {
-    fn evaluate(&self, in_state: &ID, on_trigger: &Trigger<E>) -> bool;
+pub trait Constraint: Labeled {
+    fn evaluate(&self, in_state: &ID, on_trigger: &Trigger) -> bool;
 }

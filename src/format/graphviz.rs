@@ -1,9 +1,10 @@
 /*!
-One-line description.
-
-More detailed description, with
+Writes a state machine out as a [GraphViz](https://graphviz.org/) DOT file. Does not support
+parsing DOT.
 
 # Example
+
+TBD
 
 */
 

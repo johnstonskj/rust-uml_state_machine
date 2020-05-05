@@ -5,7 +5,6 @@ authors = ["Simon Johnston <johnstonskj@gmail.com>"]
 edition = "2018"
 description = "A Reasonably faithful implementation of the Unified Modeling Language (UML) State Machine."
 repository = "https://github.com/johnstonskj/rust-uml_state_machine.git"
-license = "MIT"
 license-file = "LICENSE"
 readme = "README.md"
 publish = true

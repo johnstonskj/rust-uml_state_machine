@@ -7,12 +7,13 @@ More detailed description, with
 
 */
 
-use crate::definition::id::ID;
-use crate::definition::types::*;
-use crate::error::Result;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::slice::Iter;
+
+use crate::definition::id::ID;
+use crate::definition::types::*;
+use crate::error::Result;
 
 // ------------------------------------------------------------------------------------------------
 // Macros
@@ -21,21 +22,6 @@ use std::slice::Iter;
 macro_rules! make_labeled_impl {
     ($type_name:ident) => {
         impl Labeled for $type_name {
-            fn label(&self) -> &Option<String> {
-                &self.label
-            }
-
-            fn set_label(&mut self, label: &str) {
-                self.label = Some(label.to_string())
-            }
-
-            fn unset_label(&mut self) {
-                self.label = None
-            }
-        }
-    };
-    ($type_name:ident, $type_param:ident) => {
-        impl<$type_param: PartialEq> Labeled for $type_name<$type_param> {
             fn label(&self) -> &Option<String> {
                 &self.label
             }
@@ -59,31 +45,24 @@ macro_rules! make_identified_impl {
             }
         }
     };
-    ($type_name:ident, $type_param:ident) => {
-        impl<$type_param: PartialEq> Identified for $type_name<$type_param> {
-            fn id(&self) -> &ID {
-                &self.id
-            }
-        }
-    };
 }
 
 macro_rules! make_has_regions_impl {
     ($type_name:ident) => {
-        impl<'a, E: PartialEq> HasRegions<'a, E> for $type_name<E> {
+        impl HasRegions for $type_name {
             fn has_regions(&self) -> bool {
                 !self.regions.is_empty()
             }
 
-            fn regions(&self) -> Iter<'_, Region<E>> {
+            fn regions(&self) -> Iter<'_, Region> {
                 self.regions.iter()
             }
 
-            fn region(&self, index: usize) -> Option<&Region<E>> {
+            fn region(&self, index: usize) -> Option<&Region> {
                 self.regions.get(index)
             }
 
-            fn add_region(&mut self, region: Region<E>) {
+            fn add_region(&mut self, region: Region) {
                 self.regions.push(region)
             }
         }
@@ -93,17 +72,6 @@ macro_rules! make_has_regions_impl {
 macro_rules! make_contained_impl {
     ($type_name:ident) => {
         impl Contained for $type_name {
-            fn container(&self) -> &ID {
-                &self.container
-            }
-
-            fn set_container(&mut self, container: ID) {
-                self.container = container
-            }
-        }
-    };
-    ($type_name:ident, $type_param:ident) => {
-        impl<$type_param: PartialEq> Contained for $type_name<$type_param> {
             fn container(&self) -> &ID {
                 &self.container
             }
@@ -246,13 +214,13 @@ impl PseudoState {
 // Implementations - Region
 // ------------------------------------------------------------------------------------------------
 
-make_identified_impl!(Region, E);
+make_identified_impl!(Region);
 
-make_labeled_impl!(Region, E);
+make_labeled_impl!(Region);
 
-make_contained_impl!(Region, E);
+make_contained_impl!(Region);
 
-impl<E: 'static + PartialEq> Region<E> {
+impl Region {
     pub fn within_state(container: ID) -> Self {
         Self {
             id: ID::random(),
@@ -275,10 +243,10 @@ impl<E: 'static + PartialEq> Region<E> {
         }
     }
 
-    fn add_vertex(&self, vertex: Vertex<E>) {
+    fn add_vertex(&self, vertex: Vertex) {
         self.vertices.borrow_mut().push(Rc::new(vertex));
     }
-    pub fn add_state(&self, state: State<E>) {
+    pub fn add_state(&self, state: State) {
         self.add_vertex(Vertex::State(state));
     }
 
@@ -373,20 +341,20 @@ impl<E: 'static + PartialEq> Region<E> {
         &self.container_type
     }
 
-    pub fn vertices(&self) -> Vec<Rc<Vertex<E>>> {
+    pub fn vertices(&self) -> Vec<Rc<Vertex>> {
         self.vertices.borrow().iter().cloned().collect()
     }
 
-    pub fn transitions(&self) -> Vec<Rc<Transition<E>>> {
+    pub fn transitions(&self) -> Vec<Rc<Transition>> {
         self.transitions.borrow().iter().cloned().collect()
     }
 
     pub fn new_transition(&self, source: ID, target: ID) {
-        let transition: Transition<E> = Transition::within(source, target, self.id.clone());
+        let transition: Transition = Transition::within(source, target, self.id.clone());
         self.add_transition(transition);
     }
 
-    pub fn add_transition(&self, transition: Transition<E>) {
+    pub fn add_transition(&self, transition: Transition) {
         self.transitions.borrow_mut().push(Rc::new(transition));
     }
 }
@@ -395,15 +363,15 @@ impl<E: 'static + PartialEq> Region<E> {
 // Implementations - State
 // ------------------------------------------------------------------------------------------------
 
-make_identified_impl!(State, E);
+make_identified_impl!(State);
 
-make_labeled_impl!(State, E);
+make_labeled_impl!(State);
 
-make_contained_impl!(State, E);
+make_contained_impl!(State);
 
 make_has_regions_impl!(State);
 
-impl<E: 'static + PartialEq> State<E> {
+impl State {
     pub fn within(container: ID) -> Self {
         Self {
             id: ID::random(),
@@ -423,7 +391,7 @@ impl<E: 'static + PartialEq> State<E> {
     }
 
     pub fn new_region(&mut self) -> ID {
-        let region: Region<E> = Region::within_state(self.id().clone());
+        let region: Region = Region::within_state(self.id().clone());
         let region_id = region.id().clone();
         self.add_region(region);
         region_id
@@ -441,23 +409,23 @@ impl<E: 'static + PartialEq> State<E> {
         self.connection_points.iter()
     }
 
-    pub fn deferrable_triggers(&self) -> Iter<'_, Trigger<E>> {
+    pub fn deferrable_triggers(&self) -> Iter<'_, Trigger> {
         self.deferrable_triggers.iter()
     }
 
-    pub fn invariant(&self) -> &Option<Box<dyn Constraint<E>>> {
+    pub fn invariant(&self) -> &Option<Box<dyn Constraint>> {
         &self.invariant
     }
 
-    pub fn entry(&self) -> &Option<Box<dyn Behavior<E>>> {
+    pub fn entry(&self) -> &Option<Box<dyn Behavior>> {
         &self.entry
     }
 
-    pub fn do_activity(&self) -> &Option<Box<dyn Behavior<E>>> {
+    pub fn do_activity(&self) -> &Option<Box<dyn Behavior>> {
         &self.do_activity
     }
 
-    pub fn exit(&self) -> &Option<Box<dyn Behavior<E>>> {
+    pub fn exit(&self) -> &Option<Box<dyn Behavior>> {
         &self.exit
     }
 
@@ -486,7 +454,7 @@ impl<E: 'static + PartialEq> State<E> {
 // Implementations - StateMachine
 // ------------------------------------------------------------------------------------------------
 
-impl<E: 'static + PartialEq> Default for StateMachine<E> {
+impl Default for StateMachine {
     fn default() -> Self {
         let machine_id = ID::random();
         let mut new_machine = Self {
@@ -503,28 +471,28 @@ impl<E: 'static + PartialEq> Default for StateMachine<E> {
     }
 }
 
-make_identified_impl!(StateMachine, E);
+make_identified_impl!(StateMachine);
 
-make_labeled_impl!(StateMachine, E);
+make_labeled_impl!(StateMachine);
 
 make_has_regions_impl!(StateMachine);
 
-impl<E: PartialEq> Validate for StateMachine<E> {
+impl Validate for StateMachine {
     fn validate(&self) -> Result<()> {
         assert!(!self.regions.is_empty());
         Ok(())
     }
 }
 
-impl<E: 'static + PartialEq> StateMachine<E> {
+impl StateMachine {
     pub fn labeled(label: &str) -> Self {
-        let mut machine: StateMachine<E> = StateMachine::default();
+        let mut machine: StateMachine = StateMachine::default();
         machine.set_label(label);
         machine
     }
 
     pub fn new_region(&mut self) -> ID {
-        let region: Region<E> = Region::within_state_machine(self.id().clone());
+        let region: Region = Region::within_state_machine(self.id().clone());
         let region_id = region.id().clone();
         self.add_region(region);
         region_id
@@ -548,15 +516,13 @@ impl<E: 'static + PartialEq> StateMachine<E> {
 }
 
 // ------------------------------------------------------------------------------------------------
-// Implementations - StateMachineResolver
-// ------------------------------------------------------------------------------------------------
 
-impl<E: 'static + PartialEq> StateMachine<E> {
-    pub fn find_machine(&self, machine: ID) -> Option<Rc<StateMachine<E>>> {
+impl StateMachine {
+    pub fn find_machine(&self, machine: ID) -> Option<Rc<StateMachine>> {
         self.ref_machines.borrow().get(&machine).cloned()
     }
 
-    pub fn find_vertex(&self, container: ID, vertex: ID) -> Option<Rc<Vertex<E>>> {
+    pub fn find_vertex(&self, container: ID, vertex: ID) -> Option<Rc<Vertex>> {
         self.ref_vertices
             .borrow()
             .get(&(container, vertex))
@@ -571,7 +537,7 @@ impl<E: 'static + PartialEq> StateMachine<E> {
     }
 
     #[allow(dead_code)]
-    fn add_reference_to_machine(&self, machine: Rc<StateMachine<E>>) {
+    fn add_reference_to_machine(&self, machine: Rc<StateMachine>) {
         let _ = self
             .ref_machines
             .borrow_mut()
@@ -581,13 +547,13 @@ impl<E: 'static + PartialEq> StateMachine<E> {
         }
     }
 
-    fn add_reference_to_region(&self, region: &Region<E>) {
+    fn add_reference_to_region(&self, region: &Region) {
         for vertex in region.vertices() {
             self.add_reference_to_vertex(region.id(), vertex);
         }
     }
 
-    fn add_reference_to_vertex(&self, container: &ID, vertex: Rc<Vertex<E>>) {
+    fn add_reference_to_vertex(&self, container: &ID, vertex: Rc<Vertex>) {
         let _ = self
             .ref_vertices
             .borrow_mut()
@@ -605,11 +571,11 @@ impl<E: 'static + PartialEq> StateMachine<E> {
 // Implementations - Transition
 // ------------------------------------------------------------------------------------------------
 
-make_labeled_impl!(Transition, E);
+make_labeled_impl!(Transition);
 
-make_contained_impl!(Transition, E);
+make_contained_impl!(Transition);
 
-impl<E: PartialEq> Transition<E> {
+impl Transition {
     pub fn within(source: ID, target: ID, container: ID) -> Self {
         Self {
             label: None,
@@ -635,7 +601,7 @@ impl<E: PartialEq> Transition<E> {
         !self.triggers.is_empty()
     }
 
-    pub fn triggers(&self) -> Iter<'_, Trigger<E>> {
+    pub fn triggers(&self) -> Iter<'_, Trigger> {
         self.triggers.iter()
     }
 
@@ -643,7 +609,7 @@ impl<E: PartialEq> Transition<E> {
         self.guard.is_some()
     }
 
-    pub fn guard(&self) -> &Option<Box<dyn Constraint<E>>> {
+    pub fn guard(&self) -> &Option<Box<dyn Constraint>> {
         &self.guard
     }
 
@@ -651,7 +617,7 @@ impl<E: PartialEq> Transition<E> {
         self.effect.is_some()
     }
 
-    pub fn effect(&self) -> &Option<Box<dyn Behavior<E>>> {
+    pub fn effect(&self) -> &Option<Box<dyn Behavior>> {
         &self.effect
     }
 
@@ -685,18 +651,18 @@ impl<E: PartialEq> Transition<E> {
 // Implementations - Trigger
 // ------------------------------------------------------------------------------------------------
 
-impl<E: PartialEq> Default for Trigger<E> {
+impl Default for Trigger {
     fn default() -> Self {
         Self { event: None }
     }
 }
 
-impl<E: PartialEq> Trigger<E> {
-    pub fn with_event(event: E) -> Self {
+impl Trigger {
+    pub fn with_event(event: Box<dyn Event>) -> Self {
         Self { event: Some(event) }
     }
 
-    pub fn event(&self) -> &Option<E> {
+    pub fn event(&self) -> &Option<Box<dyn Event>> {
         &self.event
     }
 }
@@ -705,7 +671,7 @@ impl<E: PartialEq> Trigger<E> {
 // Implementations - Vertex
 // ------------------------------------------------------------------------------------------------
 
-impl<E: PartialEq> Vertex<E> {
+impl Vertex {
     pub fn id(&self) -> &ID {
         match self {
             Vertex::State(state) => state.id(),
@@ -721,7 +687,7 @@ impl<E: PartialEq> Vertex<E> {
         }
     }
 
-    pub fn as_state(&self) -> Option<&State<E>> {
+    pub fn as_state(&self) -> Option<&State> {
         match self {
             Vertex::State(inner) => Some(inner),
             _ => None,
@@ -775,20 +741,15 @@ impl<E: PartialEq> Vertex<E> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::format::plant_uml::WritePlantUml;
     use crate::format::Stringify;
 
-    #[derive(PartialEq)]
-    enum Event {
-        This,
-        That,
-    }
+    use super::*;
 
     #[test]
     fn test_simple() {
-        let simple: StateMachine<Event> = StateMachine::default();
-        let region: &Region<Event> = simple.default_region().unwrap();
+        let simple: StateMachine = StateMachine::default();
+        let region: &Region = simple.default_region().unwrap();
         let initial_id = region.new_initial_state();
         let state_id = region.new_simple_state();
         let final_id = region.new_final_state();

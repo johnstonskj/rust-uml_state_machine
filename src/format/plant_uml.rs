@@ -1,9 +1,10 @@
 /*!
-One-line description.
-
-More detailed description, with
+Writes a state machine out in the [PlantUML](https://plantuml.com/) format. Does not support
+parsing PlantUML.
 
 # Example
+
+TBD
 
 */
 
@@ -13,6 +14,11 @@ More detailed description, with
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
+use std::borrow::Borrow;
+use std::cell::RefCell;
+use std::marker::PhantomData;
+use std::slice::Iter;
+
 use crate::definition::id::ID;
 use crate::definition::types::Identified;
 use crate::definition::types::{
@@ -21,10 +27,6 @@ use crate::definition::types::{
 };
 use crate::format::Stringify;
 use crate::visitor::{visit_state_machine, Resolver, StateMachineVisitor};
-use std::borrow::Borrow;
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::slice::Iter;
 
 pub struct WritePlantUml {
     ph: PhantomData<u8>,
@@ -49,10 +51,10 @@ impl Default for WritePlantUml {
     }
 }
 
-impl<E: 'static + PartialEq> Stringify<E> for WritePlantUml {
+impl Stringify for WritePlantUml {
     type Error = ();
 
-    fn stringify(&self, machine: &StateMachine<E>) -> Result<String, Self::Error> {
+    fn stringify(&self, machine: &StateMachine) -> Result<String, Self::Error> {
         let visitor = Visitor {
             container: Default::default(),
             buffer: RefCell::new(String::new()),
@@ -64,10 +66,10 @@ impl<E: 'static + PartialEq> Stringify<E> for WritePlantUml {
     }
 }
 
-impl<E: 'static + PartialEq> StateMachineVisitor<E> for Visitor {
+impl StateMachineVisitor for Visitor {
     fn enter_state_machine(
         &self,
-        _: &Resolver<'_, E>,
+        _: &Resolver<'_>,
         id: &ID,
         label: &Option<String>,
         _: Iter<'_, ID>,
@@ -82,7 +84,7 @@ impl<E: 'static + PartialEq> StateMachineVisitor<E> for Visitor {
 
     fn exit_state_machine(
         &self,
-        _: &Resolver<'_, E>,
+        _: &Resolver<'_>,
         _: &ID,
         _: &Option<String>,
         _: Iter<'_, ID>,
@@ -93,18 +95,18 @@ impl<E: 'static + PartialEq> StateMachineVisitor<E> for Visitor {
 
     fn enter_state(
         &self,
-        _resolver: &Resolver<'_, E>,
+        _resolver: &Resolver<'_>,
         id: &ID,
         label: &Option<String>,
         region_count: usize,
         _sub_machine: &Option<ID>,
         _connections: Iter<'_, ID>,
         _connection_points: Iter<'_, ID>,
-        _deferrable_triggers: Iter<'_, Trigger<E>>,
-        _invariant: &Option<Box<dyn Constraint<E>>>,
-        _entry: &Option<Box<dyn Behavior<E>>>,
-        _do_activity: &Option<Box<dyn Behavior<E>>>,
-        _exit: &Option<Box<dyn Behavior<E>>>,
+        _deferrable_triggers: Iter<'_, Trigger>,
+        _invariant: &Option<Box<dyn Constraint>>,
+        _entry: &Option<Box<dyn Behavior>>,
+        _do_activity: &Option<Box<dyn Behavior>>,
+        _exit: &Option<Box<dyn Behavior>>,
         is_final: bool,
     ) {
         self.container.borrow_mut().push(id.clone());
@@ -123,18 +125,18 @@ impl<E: 'static + PartialEq> StateMachineVisitor<E> for Visitor {
 
     fn exit_state(
         &self,
-        _resolver: &Resolver<'_, E>,
+        _resolver: &Resolver<'_>,
         id: &ID,
         _label: &Option<String>,
         region_count: usize,
         _sub_machine: &Option<ID>,
         _connections: Iter<'_, ID>,
         _connection_points: Iter<'_, ID>,
-        _deferrable_triggers: Iter<'_, Trigger<E>>,
-        _invariant: &Option<Box<dyn Constraint<E>>>,
-        entry: &Option<Box<dyn Behavior<E>>>,
-        do_activity: &Option<Box<dyn Behavior<E>>>,
-        exit: &Option<Box<dyn Behavior<E>>>,
+        _deferrable_triggers: Iter<'_, Trigger>,
+        _invariant: &Option<Box<dyn Constraint>>,
+        entry: &Option<Box<dyn Behavior>>,
+        do_activity: &Option<Box<dyn Behavior>>,
+        exit: &Option<Box<dyn Behavior>>,
         is_final: bool,
     ) {
         if !is_final {
@@ -166,18 +168,18 @@ impl<E: 'static + PartialEq> StateMachineVisitor<E> for Visitor {
         let _ = self.container.borrow_mut().pop();
     }
 
-    fn enter_region(&self, _resolver: &Resolver<'_, E>, id: &ID, _label: &Option<String>) {
+    fn enter_region(&self, _resolver: &Resolver<'_>, id: &ID, _label: &Option<String>) {
         self.container.borrow_mut().push(id.clone());
     }
 
-    fn exit_region(&self, _resolver: &Resolver<'_, E>, _: &ID, _label: &Option<String>) {
+    fn exit_region(&self, _resolver: &Resolver<'_>, _: &ID, _label: &Option<String>) {
         self.push_line("--");
         let _ = self.container.borrow_mut().pop();
     }
 
     fn pseudo_state(
         &self,
-        _resolver: &Resolver<'_, E>,
+        _resolver: &Resolver<'_>,
         _id: &ID,
         _label: &Option<String>,
         kind: &PseudoStateKind,
@@ -190,20 +192,16 @@ impl<E: 'static + PartialEq> StateMachineVisitor<E> for Visitor {
 
     fn transition(
         &self,
-        resolver: &Resolver<'_, E>,
+        resolver: &Resolver<'_>,
         label: &Option<String>,
         _kind: TransitionKind,
         source: ID,
         target: ID,
-        _triggers: Iter<'_, Trigger<E>>,
-        guard: &Option<Box<dyn Constraint<E>>>,
-        effect: &Option<Box<dyn Behavior<E>>>,
+        _triggers: Iter<'_, Trigger>,
+        guard: &Option<Box<dyn Constraint>>,
+        effect: &Option<Box<dyn Behavior>>,
     ) {
-        fn state_str<E: 'static + PartialEq>(
-            resolver: &Resolver<'_, E>,
-            container: ID,
-            id: ID,
-        ) -> String {
+        fn state_str(resolver: &Resolver<'_>, container: ID, id: ID) -> String {
             match resolver.find_vertex(container.clone(), id) {
                 None => "ERROR".to_string(),
                 Some(rc_vertex) => match rc_vertex.borrow() {
