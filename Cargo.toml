@@ -3,10 +3,18 @@ name = "uml_state_machine"
 version = "0.1.0"
 authors = ["Simon Johnston <johnstonskj@gmail.com>"]
 edition = "2018"
+description = "A Reasonably faithful implementation of the Unified Modeling Language (UML) State Machine."
+repository = "https://github.com/johnstonskj/rust-uml_state_machine.git"
+license = "MIT"
+license-file = "LICENSE"
+readme = "README.md"
+publish = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[package.metadata.docs.rs]
+# This sets the default target to `x86_64-unknown-linux-gnu`
+# and only builds that target for documentation.
+targets = ["x86_64-unknown-linux-gnu"]
 
 [dependencies]
 blob-uuid = "0.3.1"
 error-chain = "0.12.2"
-log = "0.4.8"

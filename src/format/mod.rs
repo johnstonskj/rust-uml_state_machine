@@ -1,5 +1,5 @@
 /*!
-One-line description.
+Provides support for parsing, and emitting, external representations of a `StateMachine`.
 
 More detailed description, with
 
@@ -7,22 +7,22 @@ More detailed description, with
 
 */
 
-use crate::StateMachine;
+use crate::definition::types::StateMachine;
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
-pub trait Parse<E: Eq, D> {
+pub trait Parse<E: PartialEq> {
     type Error;
 
-    fn parse(string: &str) -> Result<StateMachine<E, D>, Self::Error>;
+    fn parse(&self, string: &str) -> Result<StateMachine<E>, Self::Error>;
 }
 
-pub trait Stringify<E: Eq, D> {
+pub trait Stringify<E: PartialEq> {
     type Error;
 
-    fn stringify(chart: StateMachine<E, D>) -> Result<String, Self::Error>;
+    fn stringify(&self, machine: &StateMachine<E>) -> Result<String, Self::Error>;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -46,6 +46,8 @@ pub trait Stringify<E: Eq, D> {
 // ------------------------------------------------------------------------------------------------
 
 pub mod graphviz;
+
+pub mod plant_uml;
 
 pub mod scxml;
 

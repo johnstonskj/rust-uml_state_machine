@@ -1,14 +1,25 @@
 /*!
-Another state chart crate.
+A Reasonably faithful implementation of the [Unified Modeling Language (UML)](http://uml.org/) State Machine.
 
-An attempt to make a faithful state chart implementation with compound, parallel state and history.
+The goal is to not just provide another state machine crate but to do so with a formal specification
+that describes the description and execution semantics. This implementation is based upon the
+[2.5.1](https://www.omg.org/spec/UML/2.5.1/PDF) version, dated 5th December 2017. The following
+image is from §14.2.2 **Abstract Syntax** and provides a very useful overview of the components
+of the model. As such, wherever possible the text of the documentation will reference the
+specification, especially copies of the constraints and semantic rules.
+
+![Abstract Syntax](abstract-syntax.png)
+
+The crate contains the descriptive model elements at the root level, with modules for error handling,
+execution of instances and reading and writing formatted representations.
 
 # Example
 
 TBD
 
-# See
+# See Also
 
+* [OMG Unified Modeling Language, Version 2.5.1](https://www.omg.org/spec/UML/2.5.1/PDF)
 * [State Diagram (Wikipedia)](https://en.wikipedia.org/wiki/State_diagram)
 * [UML State Machine (Wikipedia)](https://en.wikipedia.org/wiki/UML_state_machine)
 * [StateMachines: A Visual Formalism for Complex Systems](https://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/StateMachines.pdf)
@@ -18,143 +29,37 @@ TBD
 */
 
 #![warn(
-    missing_debug_implementations,
-//    missing_docs,
+    // ---------- Stylistic
+    future_incompatible,
+    nonstandard_style,
     rust_2018_idioms,
+    trivial_casts,
+    trivial_numeric_casts,
+    // ---------- Public
+    // missing_debug_implementations,
+    // missing_docs,
     unreachable_pub,
+    // ---------- Unsafe
     unsafe_code,
+    // ---------- Unused
     unused_extern_crates,
     unused_import_braces,
     unused_qualifications,
-    unused_results
+    unused_results,
 )]
 
 #[macro_use]
 extern crate error_chain;
-#[macro_use]
-extern crate log;
 
 // ------------------------------------------------------------------------------------------------
 // Modules
 // ------------------------------------------------------------------------------------------------
 
-pub mod error {
-    error_chain! {
-        errors {
-            #[doc = "`StateMachine::states` may not be empty."]
-            ChartStatesEmpty {
-                description("`StateMachine::states` may not be empty.")
-                display("`StateMachine::states` may not be empty.")
-            }
+pub mod error;
 
-            #[doc = "`StateMachine::initial` is set to the ID of a non-initial state."]
-            ChartInvalidInitialStateKind {
-                description("`StateMachine::initial` is set to the ID of a non-initial state.")
-                display("`StateMachine::initial` is set to the ID of a non-initial state.")
-            }
-
-            #[doc = "`StateMachine::initial` is set to the ID of a non-existent state."]
-            ChartInvalidInitialStateName {
-                description("`StateMachine::initial` is set to the ID of a non-existent state.")
-                display("`StateMachine::initial` is set to the ID of a non-existent state.")
-            }
-
-            #[doc = "`StateMachine::states` contains no final states."]
-            ChartNoFinalState {
-                description("`StateMachine::states` contains no final states.")
-                display("`StateMachine::states` contains no final states.")
-            }
-
-            #[doc = "`State::child_states` may not be empty for `StateKind::Compound` or `StateKind::Parallel`."]
-            StateChildStatesEmpty {
-                description("`State::child_states` may not be empty for `StateKind::Compound` or `StateKind::Parallel`.")
-                display("`State::child_states` may not be empty for `StateKind::Compound` or `StateKind::Parallel`.")
-            }
-
-            #[doc = "`State::initial` is either missing or not a valid initial state."]
-            StateInitialState {
-                description("`State::initial` is either missing or not a valid initial state.")
-                display("`State::initial` is either missing or not a valid initial state.")
-            }
-
-            #[doc = "`StateKind::Initial` states may not have inbound transitions."]
-            InitialStateTransitions {
-                description("`StateKind::Initial` states may not have inbound transitions.")
-                display("`StateKind::Initial` states may not have inbound transitions.")
-            }
-
-            #[doc = "`StateKind::Final` states may not have outbound transitions."]
-            FinalStateTransitions {
-                description("`StateKind::Final` states may not have outbound transitions.")
-                display("`StateKind::Final` states may not have outbound transitions.")
-            }
-
-            #[doc = "`Transition` must have at least one of `event`, `target`, or `conditions`."]
-            TransitionTrigger {
-                description("Transition must have at least one of `event`, `target`, or `conditions`.")
-                display("Transition must have at least one of `event`, `target`, or `conditions`.")
-            }
-
-            #[doc = "`Transition::target` is either missing or not a valid initial state."]
-            TransitionTargetState {
-                description("`Transition::target` is either missing or not a valid initial state.")
-                display("`Transition::target` is either missing or not a valid initial state`.")
-            }
-
-            #[doc = "`State` has multiple live outbound transitions."]
-            StateMultipleOutbound {
-                description("State has multiple live outbound transitions.")
-                display("State has multiple live outbound transitions.")
-            }
-
-            #[doc = "`StateMachineInstance` is already in a done state."]
-            InstanceIsDone {
-                description("`StateMachineInstance` is already in a done state.")
-                display("`StateMachineInstance` is already in a done state.")
-            }
-
-            #[doc = "`StateMachineInstance::is_active` is true, `execute` may only be called once."]
-            InstanceIsActive {
-                description("`StateMachineInstance::is_active` is true, `execute` may only be called once.")
-                display("`StateMachineInstance::is_active` is true, `execute` may only be called once.")
-            }
-
-            #[doc = "`StateMachineInstance::is_active` is false, `execute` must be called before `post`."]
-            InstanceIsNotActive {
-                description("`StateMachineInstance::is_active` is false, `execute` must be called before `post`.")
-                display("`StateMachineInstance::is_active` is false, `execute` must be called before `post`.")
-            }
-
-            #[doc = "More than one transition is active for an active state."]
-            MoreThanOneTransition {
-                description("More than one transition is active for an active state.")
-                display("More than one transition is active for an active state.")
-            }
-
-            #[doc = "An action executed for an active state panicked."]
-            ActionPanicked {
-                description("An action executed for an active state panicked.")
-                display("An action executed for an active state panicked.")
-            }
-
-            #[doc = "An event may not be posted while an action is running in a synchronous execution."]
-            EventDuringAction {
-                description("An event may not be posted while an action is running in a synchronous execution.")
-                display("An event may not be posted while an action is running in a synchronous execution.")
-            }
-        }
-    }
-}
-
-pub use error::{Error, ErrorKind, Result};
-
-pub mod definition;
-pub use definition::{ActionFn, ConditionFn, State, StateKind, StateMachine, Transition};
-
-pub mod execution;
-pub use execution::StateMachineInstance;
+mod definition;
+pub use definition::*;
 
 pub mod format;
 
-pub mod tag;
-pub use tag::StateID;
+pub mod visitor;

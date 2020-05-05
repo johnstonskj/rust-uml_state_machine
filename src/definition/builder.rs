@@ -485,7 +485,7 @@ impl<E: Clone + Eq + Hash, D> TransitionBuilder<E, D> {
             event: self.event.clone(),
             target: self.target.clone(),
             internal: self.internal,
-            conditions: self.conditions.clone(),
+            guard: self.conditions.clone(),
             actions: self.actions.clone(),
         };
         transition

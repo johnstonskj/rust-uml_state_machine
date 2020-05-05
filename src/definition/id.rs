@@ -1,5 +1,6 @@
 /*!
-One-line description.
+A common identifier type, it provides for string-based random values but also allows for prefixes
+and ID paths.
 
 More detailed description, with
 
@@ -7,30 +8,28 @@ More detailed description, with
 
 */
 
-// use ...
+use std::fmt::Display;
+use std::str::FromStr;
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
-use std::fmt::Display;
-use std::str::FromStr;
-
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct StateID(String);
+pub struct ID(String);
 
 pub mod error {
     error_chain! {
         errors {
-            #[doc = "`StateID` may not be an empty string."]
+            #[doc = "`ID` may not be an empty string."]
             EmptyString {
-                description("`StateID` may not be an empty string.")
-                display("`StateID` may not be an empty string.")
+                description("`ID` may not be an empty string.")
+                display("`ID` may not be an empty string.")
             }
-            #[doc = "`StateID` contains invalid character(s)."]
+            #[doc = "`ID` contains invalid character(s)."]
             InvalidCharacter {
-                description("`StateID` contains invalid character(s).")
-                display("`StateID` contains invalid character(s).")
+                description("`ID` contains invalid character(s).")
+                display("`ID` contains invalid character(s).")
             }
         }
     }
@@ -40,17 +39,21 @@ pub mod error {
 // Public Functions
 // ------------------------------------------------------------------------------------------------
 
+pub fn default_split_separator() -> String {
+    TAG_SEPARATOR.to_string()
+}
+
 // ------------------------------------------------------------------------------------------------
 // Implementations
 // ------------------------------------------------------------------------------------------------
 
-impl Display for StateID {
+impl Display for ID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl FromStr for StateID {
+impl FromStr for ID {
     type Err = error::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -62,7 +65,7 @@ impl FromStr for StateID {
 const INVALID_STATE_TAG_VALUE: &str = "<invalid-state-tag>";
 const TAG_SEPARATOR: &str = "::";
 
-impl StateID {
+impl ID {
     pub fn random() -> Self {
         Self(blob_uuid::random_blob())
     }
@@ -86,21 +89,16 @@ impl StateID {
         Ok(Self(format!("{}{}{}", self.0, TAG_SEPARATOR, suffix)))
     }
 
-    pub fn append_random(&self) -> error::Result<Self> {
-        Ok(Self(format!(
-            "{}{}{}",
-            self.0,
-            TAG_SEPARATOR,
-            Self::random()
-        )))
+    pub fn append_random(&self) -> Self {
+        Self(format!("{}{}{}", self.0, TAG_SEPARATOR, Self::random()))
     }
 
-    pub fn split(&self) -> Vec<StateID> {
+    pub fn split(&self) -> Vec<ID> {
         self.0
             .split(TAG_SEPARATOR)
             .filter_map(|s| {
-                if StateID::validate(s).is_ok() {
-                    Some(StateID::from_str(s).unwrap())
+                if ID::validate(s).is_ok() {
+                    Some(ID::from_str(s).unwrap())
                 } else {
                     None
                 }

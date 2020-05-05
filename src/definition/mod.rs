@@ -1,124 +1,6 @@
-/*!
-The core `StateMachine` implementation types.
-
-More detailed description, with
-
-# Example
-
-TBD
-
-*/
-
-#![allow(dead_code)]
-
-use crate::error::{Error, ErrorKind, Result};
-use crate::StateID;
-use std::collections::hash_map::RandomState;
-use std::collections::{HashMap, HashSet};
-use std::fmt::{Debug, Formatter};
-use std::hash::{Hash, Hasher};
-use std::rc::Rc;
-
 // ------------------------------------------------------------------------------------------------
 // Public Types
 // ------------------------------------------------------------------------------------------------
-
-///
-/// The top-level state chart type itself.
-///
-pub struct StateMachine<E: Eq, D> {
-    label: Option<String>,
-    states: HashMap<StateID, Rc<State<E, D>>>,
-    initial: StateID,
-    on_init: Vec<ActionFn<D>>,
-    on_done: Vec<ActionFn<D>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct Region {
-    child_states: Vec<StateID>,
-    initial: StateID,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum StateKind {
-    /// A non-compound state that is neither an initial or final state in this chart.
-    Atomic,
-    /// A state with children
-    Composite {
-        child_states: Vec<StateID>,
-        initial: StateID,
-    },
-    /// A state with children that execute concurrently
-    Orthogonal { child_states: Vec<StateID> },
-    /// A history recoding state
-    History { deep: bool, state: Vec<StateID> },
-    /// An initial state
-    Initial,
-    /// A final state
-    Final,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum PseudostateKind {
-    Initial,
-    DeepHistory,
-    ShallowHistory,
-    Join,
-    Fork,
-    Junction,
-    Choice,
-    EntryPoint,
-    ExitPoint,
-    Terminate,
-}
-
-#[derive(Clone, Debug)]
-pub struct Pseudostate {}
-
-pub struct State<E: Eq, D> {
-    id: StateID,
-    label: Option<String>,
-    kind: StateKind,
-    transitions: Vec<Transition<E, D>>,
-    parent: Option<StateID>,
-    on_entry: Vec<ActionFn<D>>,
-    on_run: Vec<ActionFn<D>>,
-    on_exit: Vec<ActionFn<D>>,
-}
-
-pub struct Transition<E: Eq, D> {
-    label: Option<String>,
-    event: Option<E>,
-    target: Option<StateID>,
-    internal: bool,
-    conditions: Vec<ConditionFn<E, D>>,
-    actions: Vec<ActionFn<D>>,
-}
-
-pub type ConditionFn<E, D> = Rc<dyn Fn(&StateID, &Option<&E>, &D) -> bool>;
-
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum InternalEvent {
-    Init,
-    Done,
-    Entry,
-    Run,
-    Exit,
-    Transition,
-}
-
-pub type ActionFn<D> = Rc<dyn Fn(&StateID, &InternalEvent, &mut D)>;
-
-pub mod iterators {
-    pub type Actions<'a, D> = ::std::slice::Iter<'a, super::ActionFn<D>>;
-
-    pub type Conditions<'a, E, D> = ::std::slice::Iter<'a, super::ConditionFn<E, D>>;
-
-    pub type StateIDs<'a> = ::std::slice::Iter<'a, crate::StateID>;
-
-    pub type Transitions<'a, E, D> = ::std::slice::Iter<'a, super::Transition<E, D>>;
-}
 
 // ------------------------------------------------------------------------------------------------
 // Private Types
@@ -128,7 +10,8 @@ pub mod iterators {
 // Implementations
 // ------------------------------------------------------------------------------------------------
 
-impl<E: Clone + Eq + Hash + Debug, D: Debug> Debug for StateMachine<E, D> {
+/*
+impl<E: Clone + Eq + Hash + Debug, D: Debug> Debug for StateMachine<E> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("StateMachine")
             .field("label", &self.label)
@@ -140,7 +23,7 @@ impl<E: Clone + Eq + Hash + Debug, D: Debug> Debug for StateMachine<E, D> {
     }
 }
 
-impl<E: Clone + Eq + Hash, D> Default for StateMachine<E, D> {
+impl<E: Clone + Eq + Hash> Default for StateMachine<E> {
     fn default() -> Self {
         Self {
             label: None,
@@ -152,7 +35,7 @@ impl<E: Clone + Eq + Hash, D> Default for StateMachine<E, D> {
     }
 }
 
-impl<E: Clone + Eq + Hash, D> StateMachine<E, D> {
+impl<E: Clone + Eq + Hash> StateMachine<E> {
     pub fn label(&self) -> Option<String> {
         self.label.clone()
     }
@@ -173,11 +56,11 @@ impl<E: Clone + Eq + Hash, D> StateMachine<E, D> {
         self.states.contains_key(id)
     }
 
-    pub fn get_state(&self, id: &StateID) -> Option<Rc<State<E, D>>> {
+    pub fn get_state(&self, id: &StateID) -> Option<Rc<State<E>>> {
         self.states.get(id).cloned()
     }
 
-    pub fn add_state(&mut self, state: Rc<State<E, D>>) {
+    pub fn add_state(&mut self, state: Rc<State<E>>) {
         let _ = self.states.insert(state.id(), state);
     }
 
@@ -185,7 +68,7 @@ impl<E: Clone + Eq + Hash, D> StateMachine<E, D> {
         !self.on_init.is_empty()
     }
 
-    pub fn init_actions(&self) -> iterators::Actions<'_, D> {
+    pub fn init_actions(&self) -> iterators::Actions<'_> {
         self.on_init.iter()
     }
 
@@ -193,12 +76,12 @@ impl<E: Clone + Eq + Hash, D> StateMachine<E, D> {
         !self.on_done.is_empty()
     }
 
-    pub fn done_actions(&self) -> iterators::Actions<'_, D> {
+    pub fn done_actions(&self) -> iterators::Actions<'_> {
         self.on_done.iter()
     }
 
     pub fn validate(&self) -> Result<()> {
-        fn final_count<E: Clone + Eq + Hash, D>(count: i32, st: &Rc<State<E, D>>) -> i32 {
+        fn final_count<E: Clone + Eq + Hash>(count: i32, st: &Rc<State<E>>) -> i32 {
             if st.kind() == StateKind::Final {
                 count + 1
             } else {
@@ -242,21 +125,21 @@ impl Default for StateKind {
 
 // ------------------------------------------------------------------------------------------------
 
-impl<E: Clone + Eq + Hash, D> PartialEq for State<E, D> {
+impl<E: Clone + Eq + Hash> PartialEq for State<E> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
 
-impl<E: Clone + Eq + Hash, D> Eq for State<E, D> {}
+impl<E: Clone + Eq + Hash> Eq for State<E> {}
 
-impl<E: Clone + Eq + Hash, D> Hash for State<E, D> {
+impl<E: Clone + Eq + Hash> Hash for State<E> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.id.hash(state);
     }
 }
 
-impl<E: Clone + Eq + Hash + Debug, D: Debug> Debug for State<E, D> {
+impl<E: Clone + Eq + Hash + Debug, D: Debug> Debug for State<E> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("State")
             .field("id", &self.id)
@@ -265,13 +148,13 @@ impl<E: Clone + Eq + Hash + Debug, D: Debug> Debug for State<E, D> {
             .field("transitions", &self.transitions)
             .field("parent", &self.parent)
             .field("on_entry", &format!("[..{}]", self.on_entry.len()))
-            .field("body", &format!("[..{}]", self.on_run.len()))
+            .field("body", &format!("[..{}]", self.do_activity.len()))
             .field("on_exit", &format!("[..{}]", self.on_exit.len()))
             .finish()
     }
 }
 
-impl<E: Clone + Eq + Hash, D> State<E, D> {
+impl<E: Clone + Eq + Hash> State<E> {
     pub fn id(&self) -> StateID {
         self.id.clone()
     }
@@ -295,11 +178,11 @@ impl<E: Clone + Eq + Hash, D> State<E, D> {
         !self.transitions.is_empty()
     }
 
-    pub fn transitions(&self) -> iterators::Transitions<'_, E, D> {
+    pub fn transitions(&self) -> iterators::Transitions<'_, E> {
         self.transitions.iter()
     }
 
-    pub fn add_transition(&mut self, transition: Transition<E, D>) {
+    pub fn add_transition(&mut self, transition: Transition<E>) {
         self.transitions.push(transition);
     }
 
@@ -335,7 +218,7 @@ impl<E: Clone + Eq + Hash, D> State<E, D> {
         }
     }
 
-    pub fn add_state(&mut self, state: Rc<State<E, D>>, chart: &mut StateMachine<E, D>) {
+    pub fn add_state(&mut self, state: Rc<State<E>>, chart: &mut StateMachine<E>) {
         match &mut self.kind {
             StateKind::Composite { child_states, .. } => {
                 let id = state.id();
@@ -355,27 +238,27 @@ impl<E: Clone + Eq + Hash, D> State<E, D> {
         !self.on_entry.is_empty()
     }
 
-    pub fn entry_actions(&self) -> iterators::Actions<'_, D> {
+    pub fn entry_actions(&self) -> iterators::Actions<'_> {
         self.on_entry.iter()
     }
 
     pub fn has_body_actions(&self) -> bool {
-        !self.on_run.is_empty()
+        !self.do_activity.is_empty()
     }
 
-    pub fn body_actions(&self) -> iterators::Actions<'_, D> {
-        self.on_run.iter()
+    pub fn body_actions(&self) -> iterators::Actions<'_> {
+        self.do_activity.iter()
     }
 
     pub fn has_exit_actions(&self) -> bool {
         !self.on_exit.is_empty()
     }
 
-    pub fn exit_actions(&self) -> iterators::Actions<'_, D> {
+    pub fn exit_actions(&self) -> iterators::Actions<'_> {
         self.on_exit.iter()
     }
 
-    pub(self) fn validate(&self, chart: &StateMachine<E, D>) -> Result<()> {
+    pub(self) fn validate(&self, chart: &StateMachine<E>) -> Result<()> {
         match &self.kind {
             StateKind::Atomic => {}
             StateKind::Composite {
@@ -423,27 +306,27 @@ impl<E: Clone + Eq + Hash, D> State<E, D> {
 
 // ------------------------------------------------------------------------------------------------
 
-impl<E: Clone + Eq + Hash + Debug, D: Debug> Debug for Transition<E, D> {
+impl<E: Clone + Eq + Hash + Debug, D: Debug> Debug for Transition<E> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Transition")
             .field("event", &self.event)
             .field("target", &self.target)
             .field("internal", &self.internal)
-            .field("conditions", &format!("[..{}]", self.conditions.len()))
+            .field("conditions", &format!("[..{}]", self.guard.len()))
             .field("actions", &format!("[..{}]", self.actions.len()))
             .finish()
     }
 }
 
-impl<E: Clone + Eq + Hash, D> PartialEq for Transition<E, D> {
+impl<E: Clone + Eq + Hash> PartialEq for Transition<E> {
     fn eq(&self, other: &Self) -> bool {
         self.event == other.event && self.target == other.target && self.internal == other.internal
     }
 }
 
-impl<E: Clone + Eq + Hash, D> Eq for Transition<E, D> {}
+impl<E: Clone + Eq + Hash> Eq for Transition<E> {}
 
-impl<E: Clone + Eq + Hash, D> Hash for Transition<E, D> {
+impl<E: Clone + Eq + Hash> Hash for Transition<E> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.event.hash(state);
         self.target.hash(state);
@@ -451,7 +334,7 @@ impl<E: Clone + Eq + Hash, D> Hash for Transition<E, D> {
     }
 }
 
-impl<E: Clone + Eq + Hash, D> Transition<E, D> {
+impl<E: Clone + Eq + Hash> Transition<E> {
     pub fn label(&self) -> Option<String> {
         self.label.clone()
     }
@@ -469,23 +352,23 @@ impl<E: Clone + Eq + Hash, D> Transition<E, D> {
     }
 
     pub fn is_conditional(&self) -> bool {
-        !self.conditions.is_empty()
+        !self.guard.is_empty()
     }
 
-    pub fn conditions(&self) -> iterators::Conditions<'_, E, D> {
-        self.conditions.iter()
+    pub fn conditions(&self) -> iterators::Conditions<'_, E> {
+        self.guard.iter()
     }
 
     pub fn has_actions(&self) -> bool {
         !self.actions.is_empty()
     }
 
-    pub fn actions(&self) -> iterators::Actions<'_, D> {
+    pub fn actions(&self) -> iterators::Actions<'_> {
         self.actions.iter()
     }
 
-    pub(self) fn validate(&self, chart: &StateMachine<E, D>) -> Result<()> {
-        if self.event.is_none() && self.target.is_none() && self.conditions.is_empty() {
+    pub(self) fn validate(&self, chart: &StateMachine<E>) -> Result<()> {
+        if self.event.is_none() && self.target.is_none() && self.guard.is_empty() {
             return Err(ErrorKind::TransitionTrigger.into());
         }
         if let Some(target) = &self.target {
@@ -552,7 +435,7 @@ mod tests {
             transitions: Default::default(),
             parent: None,
             on_entry: Default::default(),
-            on_run: Default::default(),
+            do_activity: Default::default(),
             on_exit: Default::default(),
         };
         chart.add_state(Rc::new(state));
@@ -575,7 +458,7 @@ mod tests {
             transitions: Default::default(),
             parent: None,
             on_entry: Default::default(),
-            on_run: Default::default(),
+            do_activity: Default::default(),
             on_exit: Default::default(),
         };
         chart.initial = StateID::from_str("a-state").unwrap();
@@ -599,7 +482,7 @@ mod tests {
             transitions: Default::default(),
             parent: None,
             on_entry: Default::default(),
-            on_run: Default::default(),
+            do_activity: Default::default(),
             on_exit: Default::default(),
         };
         chart.initial = StateID::from_str("another-state").unwrap();
@@ -623,7 +506,7 @@ mod tests {
             transitions: Default::default(),
             parent: None,
             on_entry: Default::default(),
-            on_run: Default::default(),
+            do_activity: Default::default(),
             on_exit: Default::default(),
         };
         chart.initial = StateID::from_str("a-state").unwrap();
@@ -651,7 +534,7 @@ mod tests {
             label: Some("via".to_string()),
             event: None,
             target: Some(StateID::from_str("end").unwrap()),
-            conditions: vec![],
+            guard: vec![],
             internal: false,
             actions: vec![],
         };
@@ -662,7 +545,7 @@ mod tests {
             kind: StateKind::Initial,
             transitions: Default::default(),
             on_entry: Default::default(),
-            on_run: Default::default(),
+            do_activity: Default::default(),
             on_exit: Default::default(),
             parent: None,
         };
@@ -675,7 +558,7 @@ mod tests {
             transitions: Default::default(),
             parent: None,
             on_entry: Default::default(),
-            on_run: Default::default(),
+            do_activity: Default::default(),
             on_exit: Default::default(),
         };
 
@@ -699,3 +582,12 @@ mod tests {
         }
     }
 }
+
+*/
+
+pub mod id;
+
+pub mod types;
+
+#[doc(hidden)]
+pub mod impls;
