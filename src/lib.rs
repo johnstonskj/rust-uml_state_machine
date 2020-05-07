@@ -17,6 +17,11 @@ execution of instances and reading and writing formatted representations.
 
 TBD
 
+# Features
+
+* `execution` - an in-memory execution environment for machines, included by default.
+* `format` - ability to read/write external machine definition formats, included by default.
+
 # See Also
 
 * [OMG Unified Modeling Language, Version 2.5.1](https://www.omg.org/spec/UML/2.5.1/PDF)
@@ -70,8 +75,8 @@ pub mod error;
 
 pub mod definition;
 
+#[cfg(feature = "execution")]
 pub mod execution;
 
+#[cfg(feature = "format")]
 pub mod format;
-
-pub mod visitor;

@@ -2,7 +2,7 @@
 Provides a visitor pattern for clients that want to review the model but do not always need the
 details of ownership and hierarchy traversal.
 
-More detailed description, with
+
 
 # Example
 
@@ -91,10 +91,10 @@ pub trait StateMachineVisitor {
     }
 
     #[allow(unused_variables)]
-    fn enter_region(&self, resolver: &Resolver<'_>, id: &ID, label: &Option<String>) {}
+    fn enter_region(&self, resolver: &Resolver<'_>, id: &ID, label: &Option<String>, last: bool) {}
 
     #[allow(unused_variables)]
-    fn exit_region(&self, resolver: &Resolver<'_>, id: &ID, label: &Option<String>) {}
+    fn exit_region(&self, resolver: &Resolver<'_>, id: &ID, label: &Option<String>, last: bool) {}
 
     #[allow(unused_variables)]
     fn connection_point_reference(
@@ -152,8 +152,10 @@ pub fn visit_state_machine(
         machine.sub_machine_states(),
         machine.connection_points(),
     );
-    for region in machine.regions() {
-        visit_region(region, &resolver, visitor)?;
+    let regions = machine.regions();
+    let num_regions = regions.len();
+    for (index, region) in regions.enumerate() {
+        visit_region(region, &resolver, visitor, index == num_regions - 1)?;
     }
     visitor.exit_state_machine(
         &resolver,
@@ -206,8 +208,10 @@ fn visit_state(
         state.exit(),
         state.is_final(),
     );
-    for region in state.regions() {
-        visit_region(region, resolver, visitor)?;
+    let regions = state.regions();
+    let num_regions = regions.len();
+    for (index, region) in regions.enumerate() {
+        visit_region(region, resolver, visitor, index == num_regions - 1)?;
     }
     visitor.exit_state(
         resolver,
@@ -231,8 +235,9 @@ fn visit_region(
     region: &Region,
     resolver: &Resolver<'_>,
     visitor: &dyn StateMachineVisitor,
+    last: bool,
 ) -> Result<(), Error> {
-    visitor.enter_region(resolver, region.id(), region.label());
+    visitor.enter_region(resolver, region.id(), region.label(), last);
     for vertex in region.vertices() {
         match vertex.borrow() {
             Vertex::State(state) => {
@@ -270,7 +275,7 @@ fn visit_region(
             transition.effect(),
         );
     }
-    visitor.exit_region(resolver, region.id(), region.label());
+    visitor.exit_region(resolver, region.id(), region.label(), last);
     Ok(())
 }
 

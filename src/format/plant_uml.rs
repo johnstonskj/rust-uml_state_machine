@@ -4,7 +4,16 @@ parsing PlantUML.
 
 # Example
 
-TBD
+```rust
+use uml_state_machine::definition::types::StateMachine;
+use uml_state_machine::format::plant_uml::WritePlantUml;
+use uml_state_machine::format::Stringify;
+
+pub fn print_machine(machine: &StateMachine) -> Option<String> {
+    let writer = WritePlantUml::default();
+    writer.stringify(&machine).ok()
+}
+```
 
 */
 
@@ -24,10 +33,13 @@ use crate::definition::types::{
     Behavior, Constraint, PseudoState, PseudoStateKind, StateMachine, TransitionKind, Trigger,
     Vertex,
 };
+use crate::definition::visitor::{visit_state_machine, Resolver, StateMachineVisitor};
 use crate::format::Stringify;
-use crate::visitor::{visit_state_machine, Resolver, StateMachineVisitor};
 use std::borrow::Borrow;
 
+///
+/// Implements Stringify for PlantUML.
+///
 pub struct WritePlantUml {
     ph: PhantomData<u8>,
 }
@@ -168,12 +180,14 @@ impl StateMachineVisitor for Visitor {
         let _ = self.container.borrow_mut().pop();
     }
 
-    fn enter_region(&self, _resolver: &Resolver<'_>, id: &ID, _label: &Option<String>) {
+    fn enter_region(&self, _resolver: &Resolver<'_>, id: &ID, _label: &Option<String>, last: bool) {
         self.container.borrow_mut().push(id.clone());
     }
 
-    fn exit_region(&self, _resolver: &Resolver<'_>, _: &ID, _label: &Option<String>) {
-        self.push_line("--");
+    fn exit_region(&self, _resolver: &Resolver<'_>, _: &ID, _label: &Option<String>, last: bool) {
+        if !last {
+            self.push_line("--");
+        }
         let _ = self.container.borrow_mut().pop();
     }
 
