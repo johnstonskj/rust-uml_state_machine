@@ -1,53 +1,29 @@
 /*!
-Provides support for parsing, and emitting, external representations of a `StateMachine`.
+One-line description.
 
-Each sub-module provides for a different representation type but may not implement both the
-`Parse` and `Stringify` traits.
+More detailed description, with
 
 # Example
 
-```rust
-use uml_state_machine::definition::types::*;
-use uml_state_machine::format::plant_uml::WritePlantUml;
-use uml_state_machine::format::Stringify;
-
-let simple: StateMachine = StateMachine::default();
-let region: &Region = simple.default_region().unwrap();
-let initial_id = region.new_initial_state();
-let state_id = region.new_simple_state();
-let final_id = region.new_final_state();
-
-region.new_transition(initial_id, state_id.clone());
-region.new_transition(state_id, final_id);
-
-let writer = WritePlantUml::default();
-let string = writer.stringify(&simple);
-```
-
 */
 
+use crate::core::{Context, ID};
 use crate::definition::types::StateMachine;
+use std::cell::RefCell;
+use std::collections::HashSet;
+use std::rc::Rc;
 
 // ------------------------------------------------------------------------------------------------
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
-///
-/// Parse an external representation and return a new `StateMachine` model.
-///
-pub trait Parse {
-    type Error;
-
-    fn parse(&self, string: &str) -> Result<StateMachine, Self::Error>;
-}
-
-///
-/// Create a textual representation of the state machine.
-///
-pub trait Stringify {
-    type Error;
-
-    fn stringify(&self, machine: &StateMachine) -> Result<String, Self::Error>;
+#[derive(Clone)]
+pub struct StateMachineInstance {
+    id: ID,
+    chart: Rc<StateMachine>,
+    active: HashSet<ID>,
+    context: RefCell<Context>,
+    state: RefCell<ExecutionState>,
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -62,6 +38,17 @@ pub trait Stringify {
 // Private Types
 // ------------------------------------------------------------------------------------------------
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[repr(u8)]
+enum ExecutionState {
+    New = 0,
+    Active,
+    InAction,
+    Done,
+    #[allow(dead_code)]
+    Error,
+}
+
 // ------------------------------------------------------------------------------------------------
 // Private Functions
 // ------------------------------------------------------------------------------------------------
@@ -69,13 +56,3 @@ pub trait Stringify {
 // ------------------------------------------------------------------------------------------------
 // Modules
 // ------------------------------------------------------------------------------------------------
-
-pub mod graphviz;
-
-pub mod plant_uml;
-
-pub mod scxml;
-
-pub mod uml;
-
-pub mod xstate;

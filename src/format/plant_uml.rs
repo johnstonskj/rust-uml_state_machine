@@ -14,12 +14,11 @@ TBD
 // Public Types
 // ------------------------------------------------------------------------------------------------
 
-use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::slice::Iter;
 
-use crate::definition::id::ID;
+use crate::core::ID;
 use crate::definition::types::Identified;
 use crate::definition::types::{
     Behavior, Constraint, PseudoState, PseudoStateKind, StateMachine, TransitionKind, Trigger,
@@ -27,6 +26,7 @@ use crate::definition::types::{
 };
 use crate::format::Stringify;
 use crate::visitor::{visit_state_machine, Resolver, StateMachineVisitor};
+use std::borrow::Borrow;
 
 pub struct WritePlantUml {
     ph: PhantomData<u8>,

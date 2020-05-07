@@ -55,8 +55,6 @@ extern crate error_chain;
 // Public Values
 // ------------------------------------------------------------------------------------------------
 
-pub use definition::*;
-
 ///
 /// The version of the UML specification from which this implementation is derived.
 ///
@@ -66,9 +64,14 @@ pub const UML_SPECIFICATION_VERSION: &str = "2.5.1";
 // Modules
 // ------------------------------------------------------------------------------------------------
 
+pub mod core;
+
 pub mod error;
 
-mod definition;
+pub mod definition;
+
+pub mod execution;
+
 pub mod format;
 
 pub mod visitor;

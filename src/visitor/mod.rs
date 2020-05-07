@@ -12,7 +12,7 @@ use std::borrow::Borrow;
 use std::rc::Rc;
 use std::slice::Iter;
 
-use crate::definition::id::ID;
+use crate::core::ID;
 use crate::definition::types::{
     Behavior, Constraint, HasRegions, Identified, Labeled, PseudoState, PseudoStateKind, Region,
     State, StateMachine, TransitionKind, Trigger, Validate, Vertex,

@@ -5,7 +5,7 @@ and ID paths.
 # Example
 
 ```rust
-use uml_state_machine::id::ID;
+use uml_state_machine::core::ID;
 
 let first_id = ID::random_with_prefix("thing").unwrap();
 let _next_id = first_id.append_random();

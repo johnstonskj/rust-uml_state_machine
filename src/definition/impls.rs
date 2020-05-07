@@ -7,13 +7,12 @@ More detailed description, with
 
 */
 
+use crate::core::ID;
+use crate::definition::types::*;
+use crate::error::Result;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::slice::Iter;
-
-use crate::definition::id::ID;
-use crate::definition::types::*;
-use crate::error::Result;
 
 // ------------------------------------------------------------------------------------------------
 // Macros
