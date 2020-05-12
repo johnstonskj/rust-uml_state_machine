@@ -7,13 +7,14 @@ More detailed description, with
 
 */
 
-use crate::core::ID;
-use crate::error::Result;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::rc::Rc;
 use std::slice::Iter;
+
+use crate::core::ID;
+use crate::error::Result;
 
 // ------------------------------------------------------------------------------------------------
 // Public Traits

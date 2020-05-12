@@ -180,7 +180,13 @@ impl StateMachineVisitor for Visitor {
         let _ = self.container.borrow_mut().pop();
     }
 
-    fn enter_region(&self, _resolver: &Resolver<'_>, id: &ID, _label: &Option<String>, last: bool) {
+    fn enter_region(
+        &self,
+        _resolver: &Resolver<'_>,
+        id: &ID,
+        _label: &Option<String>,
+        _last: bool,
+    ) {
         self.container.borrow_mut().push(id.clone());
     }
 
