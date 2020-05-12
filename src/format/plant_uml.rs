@@ -157,23 +157,23 @@ impl StateMachineVisitor for Visitor {
             }
             if let Some(entry) = entry {
                 if let Some(label) = entry.label() {
-                    self.push_line(&format!("{} : entry / {}", id, label));
+                    self.push_line(&format!("{}: entry / {}", id, label));
                 } else {
-                    self.push_line(&format!("{} : entry / ()", id));
+                    self.push_line(&format!("{}: entry / ()", id));
                 }
             }
             if let Some(do_activity) = do_activity {
                 if let Some(label) = do_activity.label() {
-                    self.push_line(&format!("{} : do / {}", id, label));
+                    self.push_line(&format!("{}: do / {}", id, label));
                 } else {
-                    self.push_line(&format!("{} : do / ()", id));
+                    self.push_line(&format!("{}: do / ()", id));
                 }
             }
             if let Some(exit) = exit {
                 if let Some(label) = exit.label() {
-                    self.push_line(&format!("{} : exit / {}", id, label));
+                    self.push_line(&format!("{}: exit / {}", id, label));
                 } else {
-                    self.push_line(&format!("{} : exit / ()", id));
+                    self.push_line(&format!("{}: exit / ()", id));
                 }
             }
         }
@@ -200,12 +200,22 @@ impl StateMachineVisitor for Visitor {
     fn pseudo_state(
         &self,
         _resolver: &Resolver<'_>,
-        _id: &ID,
-        _label: &Option<String>,
+        id: &ID,
+        label: &Option<String>,
         kind: &PseudoStateKind,
     ) {
+        fn pseudo_as_state(visitor: &Visitor, id: &ID, label: &Option<String>, stereotype: &str) {
+            if let Some(label) = label {
+                visitor.push_str(&format!("state \"{}\" as {} <<{}>>", label, id, stereotype));
+            } else {
+                visitor.push_str(&format!("state {} <<{}>>", id, stereotype));
+            }
+        }
         match kind {
             PseudoStateKind::Initial => {}
+            PseudoStateKind::Choice => pseudo_as_state(self, id, label, "choice"),
+            PseudoStateKind::Fork => pseudo_as_state(self, id, label, "fork"),
+            PseudoStateKind::Join => pseudo_as_state(self, id, label, "join"),
             _ => unimplemented!(),
         }
     }
