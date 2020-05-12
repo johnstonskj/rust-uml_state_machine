@@ -55,6 +55,8 @@ unused_results,
 
 #[macro_use]
 extern crate error_chain;
+#[macro_use]
+extern crate lazy_static;
 
 // ------------------------------------------------------------------------------------------------
 // Public Values

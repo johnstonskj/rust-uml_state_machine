@@ -59,6 +59,24 @@ pub fn default_split_separator() -> String {
 // Implementations
 // ------------------------------------------------------------------------------------------------
 
+trait IDValueGenerator: Sync {
+    fn next(&self) -> String;
+    fn invalid_value(&self) -> String;
+    fn is_valid_value(&self, s: &str) -> bool {
+        self.is_valid_prefix(s)
+    }
+    fn is_valid_prefix(&self, s: &str) -> bool {
+        !s.is_empty()
+            && s.chars()
+                .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == ':')
+    }
+}
+
+lazy_static! {
+    static ref IDGENERATOR: Box<dyn IDValueGenerator> =
+        Box::new(generator::IntegerGenerator::default());
+}
+
 impl Display for ID {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
@@ -69,36 +87,40 @@ impl FromStr for ID {
     type Err = error::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::validate(s)?;
-        Ok(Self(s.to_string()))
+        if s.is_empty() {
+            Err(error::ErrorKind::EmptyString.into())
+        } else if IDGENERATOR.is_valid_value(s) {
+            Ok(Self(s.to_string()))
+        } else {
+            Err(error::ErrorKind::InvalidCharacter.into())
+        }
     }
 }
 
-const INVALID_STATE_TAG_VALUE: &str = "<invalid-state-tag>";
 const TAG_SEPARATOR: &str = "::";
 
 impl ID {
     pub fn random() -> Self {
-        Self(blob_uuid::random_blob())
+        Self(IDGENERATOR.next())
     }
 
     pub fn random_with_prefix(prefix: &str) -> error::Result<Self> {
-        Self::validate(prefix)?;
-        Ok(Self(format!(
-            "{}{}{}",
-            prefix,
-            TAG_SEPARATOR,
-            Self::random()
-        )))
+        if prefix.is_empty() {
+            Err(error::ErrorKind::EmptyString.into())
+        } else if IDGENERATOR.is_valid_prefix(prefix) {
+            Ok(Self(format!(
+                "{}{}{}",
+                prefix,
+                TAG_SEPARATOR,
+                Self::random()
+            )))
+        } else {
+            Err(error::ErrorKind::InvalidCharacter.into())
+        }
     }
 
     pub fn invalid() -> Self {
-        Self(INVALID_STATE_TAG_VALUE.to_string())
-    }
-
-    pub fn append(&self, suffix: &str) -> error::Result<Self> {
-        Self::validate(suffix)?;
-        Ok(Self(format!("{}{}{}", self.0, TAG_SEPARATOR, suffix)))
+        Self(IDGENERATOR.invalid_value())
     }
 
     pub fn append_random(&self) -> Self {
@@ -109,30 +131,13 @@ impl ID {
         self.0
             .split(TAG_SEPARATOR)
             .filter_map(|s| {
-                if ID::validate(s).is_ok() {
+                if IDGENERATOR.is_valid_value(s) {
                     Some(ID::from_str(s).unwrap())
                 } else {
                     None
                 }
             })
             .collect()
-    }
-
-    pub fn is_valid(&self) -> bool {
-        Self::validate(&self.0).is_ok()
-    }
-
-    fn validate(s: &str) -> error::Result<()> {
-        if s.is_empty() {
-            Err(error::ErrorKind::EmptyString.into())
-        } else if !s
-            .chars()
-            .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == ':')
-        {
-            Err(error::ErrorKind::InvalidCharacter.into())
-        } else {
-            Ok(())
-        }
     }
 }
 
@@ -147,6 +152,64 @@ impl ID {
 // ------------------------------------------------------------------------------------------------
 // Modules
 // ------------------------------------------------------------------------------------------------
+
+mod generator {
+    use super::IDValueGenerator;
+    use std::cell::RefCell;
+    use std::ops::Add;
+
+    #[derive(Debug)]
+    pub(super) struct StringGenerator {}
+
+    impl Default for StringGenerator {
+        fn default() -> Self {
+            Self {}
+        }
+    }
+
+    #[allow(unsafe_code)]
+    unsafe impl Sync for StringGenerator {}
+
+    impl IDValueGenerator for StringGenerator {
+        fn next(&self) -> String {
+            blob_uuid::random_blob()
+        }
+
+        fn invalid_value(&self) -> String {
+            "<invalid-state-tag>".to_string()
+        }
+    }
+
+    // --------------------------------------------------------------------------------------------
+
+    #[derive(Debug)]
+    pub(super) struct IntegerGenerator {
+        current: RefCell<i64>,
+    }
+
+    impl Default for IntegerGenerator {
+        fn default() -> Self {
+            Self {
+                current: RefCell::new(0),
+            }
+        }
+    }
+
+    #[allow(unsafe_code)]
+    unsafe impl Sync for IntegerGenerator {}
+
+    impl IDValueGenerator for IntegerGenerator {
+        fn next(&self) -> String {
+            let value = *self.current.borrow();
+            *self.current.borrow_mut() = value + 1;
+            value.to_string()
+        }
+
+        fn invalid_value(&self) -> String {
+            i64::MIN.to_string()
+        }
+    }
+}
 
 // ------------------------------------------------------------------------------------------------
 // Unit Tests
