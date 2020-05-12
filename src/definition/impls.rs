@@ -82,6 +82,17 @@ macro_rules! make_contained_impl {
     };
 }
 
+macro_rules! is_pseudo_state_kind {
+    ($fn_name:ident, $kind:ident) => {
+        pub fn $fn_name(&self) -> bool {
+            match self.kind {
+                PseudoStateKind::$kind => true,
+                _ => false,
+            }
+        }
+    };
+}
+
 // ------------------------------------------------------------------------------------------------
 // Implementations - ConnectionPointReference
 // ------------------------------------------------------------------------------------------------
@@ -147,66 +158,25 @@ impl PseudoState {
         self.kind.clone()
     }
 
-    pub fn is_initial(&self) -> bool {
-        match self.kind {
-            PseudoStateKind::Initial => true,
-            _ => false,
-        }
-    }
-    pub fn is_deep_history(&self) -> bool {
-        match self.kind {
-            PseudoStateKind::Initial => true,
-            _ => false,
-        }
-    }
-    pub fn is_shallow_history(&self) -> bool {
-        match self.kind {
-            PseudoStateKind::ShallowHistory => true,
-            _ => false,
-        }
-    }
-    pub fn is_join(&self) -> bool {
-        match self.kind {
-            PseudoStateKind::Join => true,
-            _ => false,
-        }
-    }
-    pub fn is_fork(&self) -> bool {
-        match self.kind {
-            PseudoStateKind::Fork => true,
-            _ => false,
-        }
-    }
-    pub fn is_junction(&self) -> bool {
-        match self.kind {
-            PseudoStateKind::Junction => true,
-            _ => false,
-        }
-    }
-    pub fn is_choice(&self) -> bool {
-        match self.kind {
-            PseudoStateKind::Choice => true,
-            _ => false,
-        }
-    }
-    pub fn is_entry_point(&self) -> bool {
-        match self.kind {
-            PseudoStateKind::EntryPoint => true,
-            _ => false,
-        }
-    }
-    pub fn is_exit_point(&self) -> bool {
-        match self.kind {
-            PseudoStateKind::ExitPoint => true,
-            _ => false,
-        }
-    }
-    pub fn is_terminate(&self) -> bool {
-        match self.kind {
-            PseudoStateKind::Terminate => true,
-            _ => false,
-        }
-    }
+    is_pseudo_state_kind!(is_initial, Initial);
+
+    is_pseudo_state_kind!(is_deep_history, DeepHistory);
+
+    is_pseudo_state_kind!(is_shallow_history, ShallowHistory);
+
+    is_pseudo_state_kind!(is_join, Join);
+
+    is_pseudo_state_kind!(is_fork, Fork);
+
+    is_pseudo_state_kind!(is_junction, Junction);
+
+    is_pseudo_state_kind!(is_choice, Choice);
+
+    is_pseudo_state_kind!(is_entry_point, EntryPoint);
+
+    is_pseudo_state_kind!(is_exit_point, ExitPoint);
+
+    is_pseudo_state_kind!(is_terminate, Terminate);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -242,9 +212,6 @@ impl Region {
         }
     }
 
-    fn add_vertex(&self, vertex: Vertex) {
-        self.vertices.borrow_mut().push(Rc::new(vertex));
-    }
     pub fn add_state(&self, state: State) {
         self.add_vertex(Vertex::State(state));
     }
@@ -321,13 +288,6 @@ impl Region {
         self.new_pseudo_state(PseudoStateKind::Terminate)
     }
 
-    fn new_pseudo_state(&self, kind: PseudoStateKind) -> ID {
-        let new_state = PseudoState::within(self.id.clone(), kind);
-        let new_id = new_state.id.clone();
-        self.add_pseudo_state(new_state);
-        new_id
-    }
-
     pub fn add_pseudo_state(&self, pseudo_state: PseudoState) {
         self.add_vertex(Vertex::PseudoState(pseudo_state))
     }
@@ -355,6 +315,17 @@ impl Region {
 
     pub fn add_transition(&self, transition: Transition) {
         self.transitions.borrow_mut().push(Rc::new(transition));
+    }
+
+    fn add_vertex(&self, vertex: Vertex) {
+        self.vertices.borrow_mut().push(Rc::new(vertex));
+    }
+
+    fn new_pseudo_state(&self, kind: PseudoStateKind) -> ID {
+        let new_state = PseudoState::within(self.id.clone(), kind);
+        let new_id = new_state.id.clone();
+        self.add_pseudo_state(new_state);
+        new_id
     }
 }
 
