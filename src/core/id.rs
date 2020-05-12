@@ -156,7 +156,6 @@ impl ID {
 mod generator {
     use super::IDValueGenerator;
     use std::cell::RefCell;
-    use std::ops::Add;
 
     #[derive(Debug)]
     pub(super) struct StringGenerator {}

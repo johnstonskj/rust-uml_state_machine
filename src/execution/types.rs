@@ -38,6 +38,7 @@ pub struct StateMachineInstance {
 // Private Types
 // ------------------------------------------------------------------------------------------------
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[repr(u8)]
 enum ExecutionState {
@@ -45,7 +46,6 @@ enum ExecutionState {
     Active,
     InAction,
     Done,
-    #[allow(dead_code)]
     Error,
 }
 
