@@ -20,7 +20,12 @@ TBD
 # Features
 
 * `execution` - an in-memory execution environment for machines, included by default.
-* `format` - ability to read/write external machine definition formats, included by default.
+* `format-graphviz` - supports writing state diagrams with [GraphViz](https://graphviz.org/)
+   ,following the style in [this post](https://martin-thoma.com/how-to-draw-a-finite-state-machine/).
+* `format-plantuml` - supports writing [PlantUML](https://plantuml.com/state-diagram) state diagrams.
+* `format-scxml` - supports writing [State Chart XML](https://www.w3.org/TR/scxml).
+* `format-uml` - supports writing UML's [XML Metadata Interchange](https://www.omg.org/spec/XMI).
+* `format-xstate` - supports writing JavaScript [state machines](https://xstate.js.org/).
 
 # See Also
 
@@ -80,5 +85,4 @@ pub mod definition;
 #[cfg(feature = "execution")]
 pub mod execution;
 
-#[cfg(feature = "format")]
 pub mod format;

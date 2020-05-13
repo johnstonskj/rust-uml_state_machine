@@ -15,9 +15,13 @@ publish = true
 targets = ["x86_64-unknown-linux-gnu"]
 
 [features]
-default = ["execution", "format"]
+default = ["execution", "format-graphviz", "format-plantuml", "format-scxml", "format-uml", "format-xstate"]
 execution = []
-format = []
+format-graphviz = []
+format-plantuml = []
+format-scxml = []
+format-uml = []
+format-xstate = []
 
 [dependencies]
 blob-uuid = "0.3.1"

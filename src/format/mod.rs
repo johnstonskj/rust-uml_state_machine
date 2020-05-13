@@ -70,12 +70,17 @@ pub trait Stringify {
 // Modules
 // ------------------------------------------------------------------------------------------------
 
+#[cfg(feature = "format-graphviz")]
 pub mod graphviz;
 
+#[cfg(feature = "format-plantuml")]
 pub mod plant_uml;
 
+#[cfg(feature = "format-scxml")]
 pub mod scxml;
 
+#[cfg(feature = "format-uml")]
 pub mod uml;
 
+#[cfg(feature = "format-xstate")]
 pub mod xstate;
