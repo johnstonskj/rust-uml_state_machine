@@ -6,7 +6,8 @@ A Reasonably faithful implementation of the Unified Modeling Language (UML) Stat
 ![Minimum Rust Version](https://img.shields.io/badge/Min%20Rust-1.40-green.svg)
 [![crates.io](https://img.shields.io/crates/v/upnp-rs.svg)](https://crates.io/crates/uml_state_machine)
 [![docs.rs](https://docs.rs/xml_dom/badge.svg)](https://docs.rs/uml_state_machine)
-[![travis.ci](https://travis-ci.org/johnstonskj/rust-uml_state_machine.svg?branch=master)](https://travis-ci.org/johnstonskj/rust-uml_state_machine)
+![Build](https://github.com/johnstonskj/rust-uml_state_machine/workflows/Rust/badge.svg)
+![Audit](https://github.com/johnstonskj/rust-uml_state_machine/workflows/Security%20audit/badge.svg)
 [![GitHub stars](https://img.shields.io/github/stars/johnstonskj/rust-uml_state_machine.svg)](https://github.com/johnstonskj/rust-uml_state_machine/stargazers)
 
 Add a longer description here.
